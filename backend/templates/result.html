@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TRANSPORT STANDARD PRICE SYSTEM - Result</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th {
+        background-color: #333;
+        color: #fff;
+        padding: 10px;
+        text-align: left;
+      }
+      td {
+        padding: 10px;
+        border-bottom: 1px solid #ccc;
+      }
+      .petro-range {
+        font-weight: bold;
+        padding-right: 10px;
+      }
+      .button-container {
+        text-align: left;
+        margin-top: 20px;
+      }
+      .button-container button {
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 3px;
+        cursor: pointer;
+        margin: 0 10px;
+      }
+      .button-container button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>PRICE RESULT</h1>
+      <h2>Factory Name: {{ factory|upper }}</h2>
+
+      <table>
+        <tr>
+          <th>Attribute</th>
+          <th>Value</th>
+        </tr>
+        <tr>
+          <td>Distance:</td>
+          <td>{{ '{:,.2f}'.format(distance) }} KM</td>
+        </tr>
+        <tr>
+          <td>Petro Price per Liter:</td>
+          <td>{{ '{:,.2f}'.format(petro_price) }} THB</td>
+        </tr>
+        <tr>
+          <td>Working Day:</td>
+          <td>{{ day }} DAY</td>
+        </tr>
+        <tr>
+          <td>Ideal Rate:</td>
+          <td>{{ '{:,.2f}'.format(low_price) }} THB</td>
+        </tr>
+        <tr>
+          <td>Standard Rate:</td>
+          <td>{{ '{:,.2f}'.format(cal_price) }} THB</td>
+        </tr>
+        <tr>
+          <td>Can Use Rate:</td>
+          <td>
+            {% if mean_price < low_price %} {{ '{:,.2f}'.format(mean_price) }}
+            THB (USE : {{ '{:,.2f}'.format(low_price) }} THB) {% elif mean_price
+            >= low_price and mean_price <= cal_price %} {{
+            '{:,.2f}'.format(mean_price) }} THB {% else %} Not Applicable {%
+            endif %}
+          </td>
+        </tr>
+      </table>
+
+      <table>
+        <tr>
+          <th>Petro Range</th>
+          <th>Low Price</th>
+          <th>Mean Price</th>
+          <th>Standard Price</th>
+        </tr>
+        {% for petro_range, petro_price_range in PETRO_TIERS.items() %} {% set
+        petro_range_formatted = '{:.2f} - {:.2f}'.format(petro_range[0],
+        petro_range[1]) %}
+        <tr>
+          <td>{{ petro_range_formatted }}</td>
+          <td>{{ '{:,.2f}'.format(low_prices[loop.index0]) }} THB</td>
+          <td>{{ '{:,.2f}'.format(mean_prices[loop.index0]) }} THB</td>
+          <td>{{ '{:,.2f}'.format(standard_prices[loop.index0]) }} THB</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <div class="button-container">
+        <form action="/" method="get">
+          <button type="submit">Back</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

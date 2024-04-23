@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TRANSPORT STANDARD PRICE SYSTEM</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 0;
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+        padding: 20px 0;
+      }
+      form {
+        max-width: 500px;
+        margin: 0 auto;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      label {
+        display: block;
+        margin-bottom: 10px;
+        color: #333;
+        font-weight: bold;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 14px;
+        margin-bottom: 20px;
+      }
+      input[type="submit"] {
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        padding: 12px 20px;
+        font-size: 16px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      input[type="submit"]:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TRANSPORT STANDARD PRICE SYSTEM</h1>
+    <form action="/" method="post">
+      <label for="factory">Factory Name:</label>
+      <input type="text" name="factory" id="factory" required /><br /><br />
+      <label for="distance">Distance:</label>
+      <input type="number" name="distance" id="distance" required /><br /><br />
+      <label for="petro_price">Petro Price per Liter:</label>
+      <input
+        type="number"
+        name="petro_price"
+        id="petro_price"
+        step="0.01"
+        required
+      /><br /><br />
+      <label for="day">Working Day:</label>
+      <input type="number" name="day" id="day" required /><br /><br />
+      <input type="submit" value="Calculate" />
+    </form>
+  </body>
+</html>
