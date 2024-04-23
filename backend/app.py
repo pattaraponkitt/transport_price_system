@@ -4,7 +4,6 @@ import mysql.connector
 app = Flask(__name__)
 
 def connect_to_database():
-    """Connect to MySQL database."""
     return mysql.connector.connect(
         host="127.0.0.1",
         user="root",
@@ -13,36 +12,48 @@ def connect_to_database():
     )
 
 def get_constants(cursor):
-    """Retrieve constants from database."""
     cursor.execute("SELECT constant_name, constant_value FROM constants")
     return dict(cursor.fetchall())
 
+def get_constants(cursor):
+    cursor.execute("SELECT constant_name, constant_value FROM constants")
+    constants = dict(cursor.fetchall())
+
+    price_tiers = get_price_tiers(cursor)
+    constants['price_tiers'] = price_tiers
+
+    return constants
+
+
 def get_price_tiers(cursor):
-    """Retrieve price tiers from database."""
     cursor.execute("SELECT distance, price FROM price_tiers")
     return dict(cursor.fetchall())
 
 def get_petro_tiers(cursor):
-    """Retrieve petro tiers from database."""
     cursor.execute("SELECT min_petro, max_petro, price_multiplier FROM petro_tiers")
     return dict(((min_petro, max_petro), price_multiplier) for min_petro, max_petro, price_multiplier in cursor.fetchall())
 
-def calculate_base_price(distance, price_tiers):
-    """Calculate the base price based on distance and price tiers."""
+def calculate_base_price(distance, price_tiers, default_base_price=0):
+    if not price_tiers:
+        return distance * default_base_price
+
     for tier_distance, tier_price in price_tiers.items():
         if distance <= tier_distance:
             return distance * tier_price
     return distance * default_base_price
 
-def calculate_petro_price(petro, petro_tiers):
-    """Calculate the petro price multiplier based on petro price tiers."""
+
+def calculate_petro_price(petro, petro_tiers, default_petro_price=0):
+    if not petro_tiers:
+        return default_petro_price
+
     for petro_range, tier_price in petro_tiers.items():
         if petro_range[0] <= petro <= petro_range[1]:
             return tier_price
     return default_petro_price
 
+
 def calculate_standard_price(distance, petro_price, day, constants):
-    """Calculate the total transport price."""
     base_price = calculate_base_price(distance, constants['price_tiers'])
     standard_price = (
         base_price * petro_price +
@@ -67,7 +78,6 @@ def home():
         constants = get_constants(cursor)
         price_tiers = get_price_tiers(cursor)
         petro_tiers = get_petro_tiers(cursor)
-
 
         low_prices = []
         standard_prices = []
@@ -106,7 +116,6 @@ def home():
         return render_template('index.html')
 
 def calculate_mean_price(standard_prices, low_prices):
-    """Calculate the mean price for each range."""
     mean_prices = []
     for standard_price, low_price in zip(standard_prices, low_prices):
         if standard_price < low_price:
