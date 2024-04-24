@@ -1,174 +1,62 @@
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, request
 import mysql.connector
+# Import the necessary functions from your original app.py file
 
 app = Flask(__name__)
 
-db = mysql.connector.connect(
-    host="127.0.0.1",
-    user="root",
-    password="1234",
-    database="pricecal"
-)
-cursor = db.cursor()
+# Add your database connection and helper functions here
 
-def calculate_can_use_rate(mean_price, low_price, cal_price):
-    if mean_price < low_price:
-        return "{:,.2f} THB (USE : {:,.2f} THB)".format(mean_price, low_price)
-    elif mean_price >= low_price and mean_price <= cal_price:
-        return "{:,.2f} THB".format(mean_price)
-    else:
-        return "Not Applicable"
+@app.route('/api/calculate', methods=['POST'])
+def calculate_price():
+    data = request.get_json()
+    factory = data['factory'].lower()
+    distance = float(data['distance'])
+    petro_price = float(data['petroPrice'])
+    day = int(data['day'])
 
-def calculate_mean_price(standard_prices, low_prices):
-    mean_prices = []
-    for standard_price, low_price in zip(standard_prices, low_prices):
-        if standard_price < low_price:
-            mean_price = standard_price
-        else:
-            mean_price = (standard_price + low_price) / 2
-        mean_prices.append(mean_price)
-    return mean_prices
+    # Perform calculations and retrieve the necessary data
+    result = {
+        'factory': factory,
+        'distance': distance,
+        'petroPrice': petro_price,
+        'day': day,
+        'lowPrice': low_price,
+        'calculatedPrice': cal_price,
+        'canUseRate': can_use_rate,
+        'petroTiersData': petro_tiers_data,
+        'lowPrices': low_prices,
+        'meanPrices': mean_prices,
+        'standardPrices': standard_prices,
+    }
 
-def calculate_base_price(cursor, distance):
-    cursor.execute("SELECT price FROM price_tiers WHERE distance <= %s ORDER BY distance DESC LIMIT 1", (distance,))
-    basePrice_result = cursor.fetchone()
-    if basePrice_result:
-        basePrice = basePrice_result[0]
-    else:
-        cursor.execute("SELECT max_distance FROM fix_cost")
-        maxDistance = cursor.fetchone()[0]
-        if distance > maxDistance:
-            distance = maxDistance
-        cursor.execute("SELECT price FROM price_tiers WHERE distance = %s", (distance,))
-        basePrice = cursor.fetchone()[0]
-    return basePrice * distance
+    # Save the data to the database
+    cursor.execute("INSERT INTO transport_data (factory, distance, petro_price, day, price) VALUES (%s, %s, %s, %s, %s)", (factory, distance, petro_price, day, cal_price))
+    db.commit()
 
-def calculate_petro_price(cursor, petro):
-    cursor.execute("SELECT price FROM petro_tiers WHERE %s BETWEEN range_start AND range_end", (petro,))
-    petroPrice_result = cursor.fetchone()
-    if petroPrice_result:
-        petroPrice = petroPrice_result[0]
-    else:
-        cursor.execute("SELECT max_petro_tire FROM fix_cost")
-        petroPrice = cursor.fetchone()[0]
-    return petroPrice
+    return jsonify(result)
 
-def calculate_standard_price(cursor, distance, petro_price, day):
-    cursor.execute("SELECT * FROM fix_cost")
-    fix_cost_data = cursor.fetchone()
-    yardCost = fix_cost_data[1]
-    portCost = fix_cost_data[2]
-    factoryCost = fix_cost_data[3]
-    perDayCost = fix_cost_data[4]
-
-    standard_price = (
-        calculate_base_price(cursor, distance) * petro_price +
-        yardCost +
-        portCost +
-        factoryCost +
-        ((day - 1) * perDayCost)
-    )
-    return standard_price
-
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    if request.method == 'POST':
-        factory = request.form['factory'].lower()
-        distance = float(request.form['distance'])
-        petroPriceToday = float(request.form['petro_price'])
-        day = int(request.form['day'])
-
-        cursor.execute("SELECT price FROM price_tiers WHERE distance <= %s ORDER BY distance DESC LIMIT 1", (distance,))
-        basePrice_result = cursor.fetchone()
-        if basePrice_result:
-            basePrice = basePrice_result[0]
-        else:
-            cursor.execute("SELECT max_distance FROM fix_cost")
-            maxDistance = cursor.fetchone()[0]
-            if distance > maxDistance:
-                distance = maxDistance
-            cursor.execute("SELECT price FROM price_tiers WHERE distance = %s", (distance,))
-            basePrice = cursor.fetchone()[0]
-
-        cursor.execute("SELECT price FROM petro_tiers WHERE %s BETWEEN range_start AND range_end", (petroPriceToday,))
-        petroPrice_result = cursor.fetchone()
-        if petroPrice_result:
-            petroPrice = petroPrice_result[0]
-        else:
-            cursor.execute("SELECT max_petro_tire FROM fix_cost")
-            petroPrice = cursor.fetchone()[0]
-
-        cursor.execute("SELECT * FROM fix_cost")
-        fix_cost_data = cursor.fetchone()
-
-        yardCost = fix_cost_data[1]
-        portCost = fix_cost_data[2]
-        factoryCost = fix_cost_data[3]
-        perDayCost = fix_cost_data[4]
-        maxPetroTire = fix_cost_data[5]
-        maxDistance = fix_cost_data[6]
-
-        standardPrice = (
-            basePrice * petroPrice +
-            yardCost +
-            portCost +
-            factoryCost +
-            ((day - 1) * perDayCost)
-        )
-
-        low_prices = []
-        standard_prices = []
-        low_price = calculate_base_price(cursor, distance) + yardCost + portCost
-        cal_price = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, petroPriceToday), day)
-        mean_price = (low_price + cal_price) / 2
-        cursor.execute("SELECT * FROM petro_tiers")
-        petro_tiers_data = cursor.fetchall()
-        for petro_row in petro_tiers_data:
-            cal_price_range = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, (petro_row[0] + petro_row[1]) / 2), day)
-            standard_prices.append(round(cal_price_range, -2))
-            petro_price_range = calculate_petro_price(cursor, (petro_row[0] + petro_row[1]) / 2)
-            cal_price_range = calculate_base_price(cursor, distance) * petro_price_range + yardCost + portCost
-            low_prices.append(round(cal_price_range, -2))
-        mean_prices = calculate_mean_price(standard_prices, low_prices)
-
-        can_use_rate = calculate_can_use_rate(mean_price, low_price, cal_price)
-
-        cursor.execute("INSERT INTO transport_data (factory, distance, petro_price, day, price) VALUES (%s, %s, %s, %s, %s)", (factory, distance, petroPriceToday, day, cal_price))
-        db.commit()
-
-        return render_template(
-            'result.html',
-            factory=factory,
-            distance=distance,
-            day=day,
-            petro_price=petroPriceToday,
-            standard_price=standardPrice,
-            low_prices=low_prices,
-            standard_prices=standard_prices,
-            mean_prices=mean_prices,
-            low_price=round(low_price, -2),
-            cal_price=round(cal_price, -2),
-            mean_price=round(mean_price, -2),
-            petro_tiers_data=petro_tiers_data,
-            can_use_rate=can_use_rate
-        )
-    else:
-        return render_template('index.html')
-
-@app.route('/history')
-def history():
+@app.route('/api/history', methods=['GET'])
+def get_history():
     cursor.execute("SELECT * FROM transport_data")
     data = cursor.fetchall()
 
-    cal_price_list = []
+    transport_data = []
     for record in data:
         distance = record[2]
         petro_price = record[3]
         day = record[4]
         cal_price = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, petro_price), day)
-        cal_price_list.append(cal_price)
+        transport_data.append([
+            record[0],  # Record ID
+            record[1],  # Factory name
+            record[2],  # Distance
+            record[3],  # Petro price
+            cal_price,  # Calculated price
+            record[5],  # Date and time
+            record[4],  # Working day
+        ])
 
-    return render_template('history.html', transport_data=data, cal_price_list=cal_price_list)
+    return jsonify(transport_data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run()
