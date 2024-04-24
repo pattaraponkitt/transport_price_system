@@ -3,117 +3,98 @@ import mysql.connector
 
 app = Flask(__name__)
 
-def connect_to_database():
-    return mysql.connector.connect(
-        host="127.0.0.1",
-        user="root",
-        password="1234",
-        database="tran_price"
-    )
-
-def get_constants(cursor):
-    cursor.execute("SELECT constant_name, constant_value FROM constants")
-    return dict(cursor.fetchall())
-
-def get_constants(cursor):
-    cursor.execute("SELECT constant_name, constant_value FROM constants")
-    constants = dict(cursor.fetchall())
-
-    price_tiers = get_price_tiers(cursor)
-    constants['price_tiers'] = price_tiers
-
-    return constants
-
-
-def get_price_tiers(cursor):
-    cursor.execute("SELECT distance, price FROM price_tiers")
-    return dict(cursor.fetchall())
-
-def get_petro_tiers(cursor):
-    cursor.execute("SELECT min_petro, max_petro, price_multiplier FROM petro_tiers")
-    return dict(((min_petro, max_petro), price_multiplier) for min_petro, max_petro, price_multiplier in cursor.fetchall())
-
-def calculate_base_price(distance, price_tiers, default_base_price=0):
-    if not price_tiers:
-        return distance * default_base_price
-
-    for tier_distance, tier_price in price_tiers.items():
-        if distance <= tier_distance:
-            return distance * tier_price
-    return distance * default_base_price
-
-
-def calculate_petro_price(petro, petro_tiers, default_petro_price=0):
-    if not petro_tiers:
-        return default_petro_price
-
-    for petro_range, tier_price in petro_tiers.items():
-        if petro_range[0] <= petro <= petro_range[1]:
-            return tier_price
-    return default_petro_price
-
-
-def calculate_standard_price(distance, petro_price, day, constants):
-    base_price = calculate_base_price(distance, constants['price_tiers'])
-    standard_price = (
-        base_price * petro_price +
-        constants['YARD_COST'] +
-        constants['PORT_COST'] +
-        constants['FACTORY_COST'] +
-        ((day - 1) * constants['PER_DAY_COST'])
-    )
-    return standard_price
+db = mysql.connector.connect(
+    host="127.0.0.1",
+    user="root",
+    password="1234",
+    database="pricecal"
+)
+cursor = db.cursor()
 
 @app.route('/', methods=['GET', 'POST'])
 def home():
     if request.method == 'POST':
         factory = request.form['factory'].lower()
         distance = float(request.form['distance'])
-        petro_price_today = float(request.form['petro_price'])
+        petroPriceToday = float(request.form['petro_price'])
         day = int(request.form['day'])
 
-        db_connection = connect_to_database()
-        cursor = db_connection.cursor()
+        cursor.execute("SELECT price FROM price_tiers WHERE distance <= %s ORDER BY distance DESC LIMIT 1", (distance,))
+        basePrice = cursor.fetchone()[0]
 
-        constants = get_constants(cursor)
-        price_tiers = get_price_tiers(cursor)
-        petro_tiers = get_petro_tiers(cursor)
+        cursor.execute("SELECT price FROM petro_tiers WHERE %s BETWEEN range_start AND range_end", (petroPriceToday,))
+        petroPrice = cursor.fetchone()[0]
+
+        cursor.execute("SELECT * FROM fix_cost")
+        fix_cost_data = cursor.fetchone()
+
+        yardCost = fix_cost_data[1]
+        portCost = fix_cost_data[2]
+        factoryCost = fix_cost_data[3]
+        perDayCost = fix_cost_data[4]
+        maxPetroTire = fix_cost_data[5]
+        maxDistance = fix_cost_data[6]
+
+        standardPrice = (
+            basePrice * petroPrice +
+            yardCost +
+            portCost +
+            factoryCost +
+            ((day - 1) * perDayCost)
+        )
 
         low_prices = []
         standard_prices = []
-        low_price = calculate_base_price(distance, price_tiers) + constants['YARD_COST'] + constants['PORT_COST']
-        cal_price = calculate_standard_price(distance, petro_price_today, day, constants)
+        low_price = calculate_base_price(cursor, distance) + yardCost + portCost
+        cal_price = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, petroPriceToday), day)
         mean_price = (low_price + cal_price) / 2
-
-        for petro_range, petro_price_range in petro_tiers.items():
-            cal_price_range = calculate_standard_price(distance, petro_price_range, day, constants)
+        
+        cursor.execute("SELECT * FROM petro_tiers")
+        petro_tiers_data = cursor.fetchall()
+        for petro_row in petro_tiers_data:
+            cal_price_range = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, (petro_row[0] + petro_row[1]) / 2), day)
             standard_prices.append(round(cal_price_range, -2))
-
-        for petro_range, petro_price_range in petro_tiers.items():
-            petro_price_range = calculate_petro_price((petro_range[0] + petro_range[1]) / 2, petro_tiers)
-            cal_price_range = calculate_base_price(distance, price_tiers) * petro_price_range + constants['YARD_COST'] + constants['PORT_COST']
+            petro_price_range = calculate_petro_price(cursor, (petro_row[0] + petro_row[1]) / 2)
+            cal_price_range = calculate_base_price(cursor, distance) * petro_price_range + yardCost + portCost
             low_prices.append(round(cal_price_range, -2))
-
         mean_prices = calculate_mean_price(standard_prices, low_prices)
 
-        db_connection.close()
+        cursor.execute("INSERT INTO transport_data (factory, distance, petro_price, day, price) VALUES (%s, %s, %s, %s, %s)", (factory, distance, petroPriceToday, day, standardPrice))
+        db.commit()
 
         return render_template(
             'result.html',
             factory=factory,
             distance=distance,
             day=day,
-            petro_price=petro_price_today,
+            petro_price=petroPriceToday,
+            standard_price=standardPrice,
             low_prices=low_prices,
             standard_prices=standard_prices,
             mean_prices=mean_prices,
             low_price=round(low_price, -2),
             cal_price=round(cal_price, -2),
             mean_price=round(mean_price, -2),
-            PETRO_TIERS=petro_tiers
+            petro_tiers_data=petro_tiers_data
         )
     else:
         return render_template('index.html')
+
+@app.route('/history')
+def history():
+    cursor.execute("SELECT * FROM transport_data")
+    data = cursor.fetchall()
+
+    cal_price_list = []
+    for record in data:
+        distance = record[2]
+        petro_price = record[3]
+        day = record[4]
+        cal_price = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, petro_price), day)
+        cal_price_list.append(cal_price)
+    
+    return render_template('history.html', transport_data=data, cal_price_list=cal_price_list)
+
 
 def calculate_mean_price(standard_prices, low_prices):
     mean_prices = []
@@ -124,6 +105,33 @@ def calculate_mean_price(standard_prices, low_prices):
             mean_price = (standard_price + low_price) / 2
         mean_prices.append(mean_price)
     return mean_prices
+
+def calculate_base_price(cursor, distance):
+    cursor.execute("SELECT price FROM price_tiers WHERE distance <= %s ORDER BY distance DESC LIMIT 1", (distance,))
+    basePrice = cursor.fetchone()[0]
+    return basePrice * distance
+
+def calculate_petro_price(cursor, petro):
+    cursor.execute("SELECT price FROM petro_tiers WHERE %s BETWEEN range_start AND range_end", (petro,))
+    petroPrice = cursor.fetchone()[0]
+    return petroPrice
+
+def calculate_standard_price(cursor, distance, petro_price, day):
+    cursor.execute("SELECT * FROM fix_cost")
+    fix_cost_data = cursor.fetchone()
+    yardCost = fix_cost_data[1]
+    portCost = fix_cost_data[2]
+    factoryCost = fix_cost_data[3]
+    perDayCost = fix_cost_data[4]
+
+    standard_price = (
+        calculate_base_price(cursor, distance) * petro_price +
+        yardCost +
+        portCost +
+        factoryCost +
+        ((day - 1) * perDayCost)
+    )
+    return standard_price
 
 if __name__ == '__main__':
     app.run(debug=True)

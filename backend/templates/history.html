@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Transportation Price History</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Transportation Price History</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Factory Name</th>
+          <th>Distance (KM)</th>
+          <th>Petro Price per Liter (THB)</th>
+          <th>Working Day</th>
+          <th>Standard Price (THB)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in transport_data %}
+        <tr>
+          <td>{{ record[1] }}</td>
+          <td>{{ '{:,.2f}'.format(record[2]) }}</td>
+          <td>{{ '{:,.2f}'.format(record[3]) }}</td>
+          <td>{{ record[4] }}</td>
+          <td>{{ '{:,.2f}'.format(cal_price_list[loop.index0]) }} THB</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
