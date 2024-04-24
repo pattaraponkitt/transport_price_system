@@ -44,20 +44,23 @@
       <thead>
         <tr>
           <th>Factory Name</th>
+          <th>Date</th>
           <th>Distance (KM)</th>
           <th>Petro Price per Liter (THB)</th>
           <th>Working Day</th>
-          <th>Standard Price (THB)</th>
+          <th>Can Use Rate (THB)</th>
         </tr>
       </thead>
       <tbody>
         {% for record in transport_data %}
         <tr>
           <td>{{ record[1] }}</td>
+          <td>{{ record[5].strftime('%d-%m-%Y %H:%M:%S') }}</td>
           <td>{{ '{:,.2f}'.format(record[2]) }}</td>
           <td>{{ '{:,.2f}'.format(record[3]) }}</td>
-          <td>{{ record[4] }}</td>
-          <td>{{ '{:,.2f}'.format(cal_price_list[loop.index0]) }} THB</td>
+          <td>{{ record[6] }}</td>
+
+          <td>{{ record[6] }}</td>
         </tr>
         {% endfor %}
       </tbody>

@@ -50,10 +50,32 @@
         background-color: #45a049;
       }
     </style>
+    <script>
+      function validateForm() {
+        var distance = document.getElementById("distance").value;
+        var petroPrice = document.getElementById("petro_price").value;
+        var day = document.getElementById("day").value;
+
+        if (
+          distance === "" ||
+          petroPrice === "" ||
+          day === "" ||
+          distance <= 0 ||
+          petroPrice <= 0 ||
+          day <= 0
+        ) {
+          alert(
+            "Please enter valid values for distance, petro price, and working day."
+          );
+          return false;
+        }
+        return true;
+      }
+    </script>
   </head>
   <body>
     <h1>TRANSPORT STANDARD PRICE SYSTEM</h1>
-    <form action="/" method="post">
+    <form action="/" method="post" onsubmit="return validateForm()">
       <label for="factory">Factory Name:</label>
       <input type="text" name="factory" id="factory" required /><br /><br />
       <label for="distance">Distance:</label>
