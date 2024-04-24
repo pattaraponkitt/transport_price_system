@@ -62,7 +62,6 @@ def home():
         low_price = calculate_base_price(cursor, distance) + yardCost + portCost
         cal_price = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, petroPriceToday), day)
         mean_price = (low_price + cal_price) / 2
-        
         cursor.execute("SELECT * FROM petro_tiers")
         petro_tiers_data = cursor.fetchall()
         for petro_row in petro_tiers_data:
@@ -106,9 +105,8 @@ def history():
         day = record[4]
         cal_price = calculate_standard_price(cursor, distance, calculate_petro_price(cursor, petro_price), day)
         cal_price_list.append(cal_price)
-    
-    return render_template('history.html', transport_data=data, cal_price_list=cal_price_list)
 
+    return render_template('history.html', transport_data=data, cal_price_list=cal_price_list)
 
 def calculate_mean_price(standard_prices, low_prices):
     mean_prices = []
