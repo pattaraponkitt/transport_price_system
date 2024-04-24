@@ -45,9 +45,10 @@
         <tr>
           <th>Factory Name</th>
           <th>Date</th>
+          <th>Working Day</th>
           <th>Distance (KM)</th>
           <th>Petro Price per Liter (THB)</th>
-          <th>Working Day</th>
+
           <th>Can Use Rate (THB)</th>
         </tr>
       </thead>
@@ -56,11 +57,10 @@
         <tr>
           <td>{{ record[1] }}</td>
           <td>{{ record[5].strftime('%d-%m-%Y %H:%M:%S') }}</td>
+          <td>{{ record[6] }}</td>
           <td>{{ '{:,.2f}'.format(record[2]) }}</td>
           <td>{{ '{:,.2f}'.format(record[3]) }}</td>
-          <td>{{ record[6] }}</td>
-
-          <td>{{ record[6] }}</td>
+          <td>{{ '{:,.2f}'.format(record[4]) }}</td>
         </tr>
         {% endfor %}
       </tbody>

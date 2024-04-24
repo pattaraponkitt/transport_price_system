@@ -72,7 +72,7 @@ def home():
             low_prices.append(round(cal_price_range, -2))
         mean_prices = calculate_mean_price(standard_prices, low_prices)
 
-        cursor.execute("INSERT INTO transport_data (factory, distance, petro_price, day, price) VALUES (%s, %s, %s, %s, %s)", (factory, distance, petroPriceToday, day, standardPrice))
+        cursor.execute("INSERT INTO transport_data (factory, distance, petro_price, day, price) VALUES (%s, %s, %s, %s, %s)", (factory, distance, petroPriceToday, day, cal_price))
         db.commit()
 
         return render_template(
