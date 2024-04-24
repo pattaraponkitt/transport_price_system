@@ -161,3 +161,6 @@ def calculate_standard_price(cursor, distance, petro_price, day):
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+#unit test again : def calculate_petro_price(cursor, petro):
