@@ -9,7 +9,6 @@ const Form = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission here
   };
 
   const validateForm = () => {

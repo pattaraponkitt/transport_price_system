@@ -1,34 +1,69 @@
-import React, { useState, useEffect } from 'react'; import axios from 'axios';
-const TransportationPriceHistory = () => { const [transportData,
-setTransportData] = useState([]); useEffect(() => { const fetchData = async ()
-=> { try { const response = await axios.get('/api/transport-history');
-setTransportData(response.data); } catch (error) { console.error('Error fetching
-transport data:', error); } }; fetchData(); }, []); return (
-<div>
-  <h1>Transportation Price History</h1>
-  <table>
-    <thead>
-      <tr>
-        <th>Factory Name</th>
-        <th>Date</th>
-        <th>Working Day</th>
-        <th>Distance (KM)</th>
-        <th>Petro Price per Liter (THB)</th>
-        <th>Can Use Rate (THB)</th>
-      </tr>
-    </thead>
-    <tbody>
-      {transportData.map((record, index) => (
-      <tr key="{index}">
-        <td>{record[1]}</td>
-        <td>{new Date(record[5]).toLocaleString()}</td>
-        <td>{record[6]}</td>
-        <td>{record[2].toFixed(2)}</td>
-        <td>{record[3].toFixed(2)}</td>
-        <td>{record[4].toFixed(2)}</td>
-      </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-); }; export default TransportationPriceHistory;
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Transportation Price History</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 20px;
+      }
+
+      h1 {
+        color: #333;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+
+      th,
+      td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+      }
+
+      th {
+        background-color: #f2f2f2;
+      }
+
+      tr:hover {
+        background-color: #f5f5f5;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Transportation Price History</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Factory Name</th>
+          <th>Date</th>
+          <th>Working Day</th>
+          <th>Distance (KM)</th>
+          <th>Petro Price per Liter (THB)</th>
+
+          <th>Can Use Rate (THB)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in transport_data %}
+        <tr>
+          <td>{{ record[1] }}</td>
+          <td>{{ record[5].strftime('%d-%m-%Y %H:%M:%S') }}</td>
+          <td>{{ record[6] }}</td>
+          <td>{{ '{:,.2f}'.format(record[2]) }}</td>
+          <td>{{ '{:,.2f}'.format(record[3]) }}</td>
+          <td>{{ '{:,.2f}'.format(record[4]) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </body>
+</html>
