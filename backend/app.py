@@ -20,10 +20,24 @@ def home():
         day = int(request.form['day'])
 
         cursor.execute("SELECT price FROM price_tiers WHERE distance <= %s ORDER BY distance DESC LIMIT 1", (distance,))
-        basePrice = cursor.fetchone()[0]
+        basePrice_result = cursor.fetchone()
+        if basePrice_result:
+            basePrice = basePrice_result[0]
+        else:
+            cursor.execute("SELECT max_distance FROM fix_cost")
+            maxDistance = cursor.fetchone()[0]
+            if distance > maxDistance:
+                distance = maxDistance
+            cursor.execute("SELECT price FROM price_tiers WHERE distance = %s", (distance,))
+            basePrice = cursor.fetchone()[0]
 
         cursor.execute("SELECT price FROM petro_tiers WHERE %s BETWEEN range_start AND range_end", (petroPriceToday,))
-        petroPrice = cursor.fetchone()[0]
+        petroPrice_result = cursor.fetchone()
+        if petroPrice_result:
+            petroPrice = petroPrice_result[0]
+        else:
+            cursor.execute("SELECT max_petro_tire FROM fix_cost")
+            petroPrice = cursor.fetchone()[0]
 
         cursor.execute("SELECT * FROM fix_cost")
         fix_cost_data = cursor.fetchone()
@@ -108,12 +122,26 @@ def calculate_mean_price(standard_prices, low_prices):
 
 def calculate_base_price(cursor, distance):
     cursor.execute("SELECT price FROM price_tiers WHERE distance <= %s ORDER BY distance DESC LIMIT 1", (distance,))
-    basePrice = cursor.fetchone()[0]
+    basePrice_result = cursor.fetchone()
+    if basePrice_result:
+        basePrice = basePrice_result[0]
+    else:
+        cursor.execute("SELECT max_distance FROM fix_cost")
+        maxDistance = cursor.fetchone()[0]
+        if distance > maxDistance:
+            distance = maxDistance
+        cursor.execute("SELECT price FROM price_tiers WHERE distance = %s", (distance,))
+        basePrice = cursor.fetchone()[0]
     return basePrice * distance
 
 def calculate_petro_price(cursor, petro):
     cursor.execute("SELECT price FROM petro_tiers WHERE %s BETWEEN range_start AND range_end", (petro,))
-    petroPrice = cursor.fetchone()[0]
+    petroPrice_result = cursor.fetchone()
+    if petroPrice_result:
+        petroPrice = petroPrice_result[0]
+    else:
+        cursor.execute("SELECT max_petro_tire FROM fix_cost")
+        petroPrice = cursor.fetchone()[0]
     return petroPrice
 
 def calculate_standard_price(cursor, distance, petro_price, day):
