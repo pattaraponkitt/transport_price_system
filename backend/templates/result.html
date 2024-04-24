@@ -91,13 +91,7 @@
         </tr>
         <tr>
           <td>Can Use Rate:</td>
-          <td>
-            {% if mean_price < low_price %} {{ '{:,.2f}'.format(mean_price) }}
-            THB (USE : {{ '{:,.2f}'.format(low_price) }} THB) {% elif mean_price
-            >= low_price and mean_price <= cal_price %} {{
-            '{:,.2f}'.format(mean_price) }} THB {% else %} Not Applicable {%
-            endif %}
-          </td>
+          <td>{{ can_use_rate }}</td>
         </tr>
       </table>
 
